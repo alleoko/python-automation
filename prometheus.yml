@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'docker'
+    static_configs:
+      - targets:
+          - 'localhost:50000'  # This is an example target, adjust as needed
+
