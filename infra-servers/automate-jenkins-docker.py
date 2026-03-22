@@ -21,14 +21,14 @@ def run_jenkins():
         print("Creating and starting Jenkins container...")
         subprocess.run([
             "docker", "run", "-d",
-            "-p", "8080:8080",
+            "-p", "8082:8082",
             "-p", "50000:50000",
             "-v", f"{jenkins_home}:/var/jenkins_home",
             "--name", container_name,
             "jenkins/jenkins:lts"
         ], check=True)
 
-    print("🌐 Jenkins URL: http://localhost:8080")
+    print("🌐 Jenkins URL: http://localhost:8082")
 
 
 run_jenkins()
