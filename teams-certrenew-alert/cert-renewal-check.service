@@ -1,0 +1,12 @@
+[Unit]
+Description=Certificate Renewal Check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/check-cert-renewal.sh
+StandardOutput=journal
+StandardError=journal
+EnvironmentFile=/etc/cert-renewal/cert-renewal.env
+PrivateTmp=yes

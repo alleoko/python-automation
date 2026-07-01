@@ -1,0 +1,56 @@
+SECTION,COMPONENT,DESCRIPTION,LOCATION,FILE NAME,FUNCTION,OWNER,STATUS
+System Overview,Certificate Renewal Alert System,"Automated monitoring system that checks SSL/TLS certificates on EC2 instances and sends alerts to Microsoft Teams before expiration. Monitors certificates daily at 9 AM and alerts team 7 days before expiry.","EC2 Instance + Power Automate + Teams","check-cert-renewal.sh, cert-renewal.env, cert-renewal-check.service, cert-renewal-check.timer","Prevent certificate expiration incidents, provide real-time notifications, automate monitoring process","DevOps Team","Active
+
+File Locations,Main Monitoring Script,Bash script that checks certificate expiration dates and triggers alerts,/usr/local/bin/,check-cert-renewal.sh,"Reads certificate files from /etc/letsencrypt/live/, calculates days until expiry, creates MessageCard format alerts, sends to Power Automate webhook","EC2 Instance","Deployed
+
+File Locations,Configuration File,Environment variables for script execution,/etc/cert-renewal/,cert-renewal.env,"Stores TEAMS_WEBHOOK_URL, CERT_PATH, and ALERT_DAYS threshold. Must be kept secure (600 permissions)","EC2 Instance","Configured
+
+File Locations,Systemd Service,System service definition for scheduled execution,/etc/systemd/system/,cert-renewal-check.service,"Defines how the script runs as a system service. Specifies environment file location, execution user, logging configuration","EC2 Instance","Installed
+
+File Locations,Systemd Timer,Schedule definition for automatic execution,/etc/systemd/system/,cert-renewal-check.timer,"Defines when script runs (daily at 9 AM). Manages schedule and ensures execution persistence across reboots","EC2 Instance","Active
+
+File Locations,Application Logs,Runtime logs from script execution,/var/log/,cert-renewal-check.log,"Records each script execution, certificate checks, alerts sent, and any errors encountered","EC2 Instance","Logging
+
+File Locations,Certbot Logs,Let's Encrypt certificate management logs,/var/log/letsencrypt/,letsencrypt.log,"Records certificate renewal activities, renewal successes/failures, renewal attempts by Certbot","EC2 Instance","Logging
+
+Component,Power Automate Webhook,Microsoft Power Automate cloud service integration,https://make.powerautomate.com/,Certificate Renewal Alert Flow,"Receives HTTP POST requests from EC2 script, parses MessageCard format, forwards to Teams channel. Acts as bridge between EC2 and Teams","Microsoft Cloud","Active
+
+Component,Microsoft Teams Channel,Team communication platform for alerts,Microsoft Teams App,"Certificate Alerts Channel","Displays alert messages with certificate details, domain name, days until expiry, severity level. Team reviews and takes action","Team Members","Monitoring
+
+Component,EC2 Instance,Amazon Elastic Compute Cloud instance,AWS Console,AWS EC2 Instance,"Hosts Nginx/Apache web server, Certbot installation, certificate storage, runs monitoring script daily","Cloud Infrastructure","Production
+
+Component,Systemd Timer Daemon,Linux system service scheduler,EC2 Linux System,systemd,"Manages automatic execution schedule, ensures script runs at specified times, handles logging to journalctl, manages service dependencies","Operating System","System Service
+
+Alert Severity,Critical,"Certificate has expired or expires today",Red (E74C3C),"0 or fewer days remaining","Requires immediate action, automatic renewal may have failed, manual intervention needed","Alert System","Active
+
+Alert Severity,Warning,"Certificate expiring within alert threshold",Orange (F39C12),"1-7 days remaining (configurable)","Normal operation, certificate renewal should be happening automatically via Certbot, alerts team to monitor","Alert System","Active
+
+Alert Severity,Info,"Certificate expiring soon but not urgent",Yellow (FFC000),"8-30 days remaining","Informational only, certificate will expire soon, automatic renewal still in progress","Alert System","Active
+
+Configuration,TEAMS_WEBHOOK_URL,Power Automate webhook endpoint,cert-renewal.env,"https://default60210d45ac5844a8a263c4fe378e37.1c.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/526e759aada14664a3e3fbdde8837114/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=iLB5Yg2SDwcUdtpFPHfJdFLu9PXK-1DYEbuw-mjSZdQ","Destination for alert messages. Change only if webhook is regenerated. Keep secure, never share publicly","DevOps Admin","Configured
+
+Configuration,CERT_PATH,Path to Let's Encrypt certificate directory,cert-renewal.env,/etc/letsencrypt/live,"Directory where Certbot stores certificates. Standard location for Let's Encrypt. Change only if custom installation path used","EC2 Instance","Standard
+
+Configuration,ALERT_DAYS,Days before expiry to trigger alert,cert-renewal.env,"7 (default, configurable)","Number of days before certificate expiration to send alert. Adjust based on team renewal SLA. Typically 7 days recommended","DevOps Admin","Configurable
+
+Execution,Daily Check Time,When script runs,Systemd Timer,"9:00 AM (24-hour format)","Script executes daily at 9 AM server time. All certificates checked. Alerts sent only if expiry threshold met","Scheduled Task","Active
+
+Execution,Certificate Validation,How certificates are checked,check-cert-renewal.sh,"openssl x509 command","Reads cert.pem file, extracts expiry date, calculates days remaining, compares against ALERT_DAYS threshold","Script Logic","Running
+
+Execution,Alert Format,How alerts are formatted,check-cert-renewal.sh,"MessageCard JSON format","Creates structured card with: domain name, days remaining, expiry date, severity color, recommended actions","Formatting","Standard
+
+Execution,Delivery Method,How alerts are sent,Power Automate,HTTP POST to webhook,"EC2 script sends curl POST with MessageCard JSON payload to Power Automate. Power Automate forwards to Teams channel","Network","Active
+
+Monitoring,Log Location,Where logs are stored,/var/log/,"cert-renewal-check.log, letsencrypt.log","Script logs: execution timestamp, certificates checked, alerts sent. Certbot logs: renewal status, success/failure reasons","Logging System","Active
+
+Monitoring,Log Size,Typical log file size per day,/var/log/,"< 1 KB per day","Minimal logging, only records key events. Logs do not grow excessively","Performance","Optimal
+
+Monitoring,Manual Check,How to run script manually,EC2 Terminal,"sudo /usr/local/bin/check-cert-renewal.sh","Execute script outside of schedule for testing or immediate check. Useful for troubleshooting before automatic run","Admin Task","On-Demand
+
+Maintenance,Timer Status,Check if timer is active,EC2 Terminal,"sudo systemctl status cert-renewal-check.timer","Verify timer is running and next scheduled execution time. Essential for confirming system is operational","Admin Task","Daily
+
+Maintenance,View Logs,Access execution logs,EC2 Terminal,"sudo journalctl -u cert-renewal-check.service -n 50","Review recent script executions, any errors, successful alerts sent. Last 50 entries displayed","Admin Task","Weekly
+
+Maintenance,Certificate Status,Check current certificate status,EC2 Terminal,"sudo certbot certificates","Lists all managed certificates, expiry dates, renewal status. Compares actual status with system monitoring","Admin Task","Weekly
+
+Maintenance,Renewal Test,Test certificate renewal process,EC2 Terminal,"sudo certbot renew --dry-run --quiet","Simulates renewal process without making changes. Verifies Certbot can renew certificates successfully","Admin Task","Monthly
